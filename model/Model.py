@@ -148,6 +148,67 @@ class TransBlock(nn.Module):
         out = torch.cat(x,dim=1)
         return out
 
+class S4Layer(nn.Module):
+    """S4 layer implementation using local s4.py module."""
+    
+    def __init__(self, d_model, d_state=64, dropout=0.0, transposed=False, **kwargs):
+        super().__init__()
+        
+        # Import from local module
+        from model.modules.s4 import S4Block
+        
+        self.d_model = d_model
+        self.s4_block = S4Block(
+            d_model=d_model,
+            d_state=d_state,
+            dropout=dropout,
+            transposed=transposed,
+            **kwargs
+        )
+        self.norm = nn.LayerNorm(d_model)
+        
+    def forward(self, x):
+        """
+        Input x: (B, T, J, C)
+        """
+        B, T, J, C = x.shape
+        # Reshape to (B*J, T, C) for S4 processing along temporal dimension
+        x_reshaped = x.transpose(1, 2).reshape(B*J, T, C)
+        
+        # Apply S4 - S4Block returns output and state, we only need output
+        output, _ = self.s4_block(x_reshaped)
+        
+        # Reshape back
+        output = output.reshape(B, J, T, C).transpose(1, 2)
+        
+        # Residual connection and normalization  
+        output = x + output
+        output = self.norm(output)
+        
+        return output
+
+class S4TemporalBlock(nn.Module):
+    """Block of S4 layers processing both temporal and spatial dimensions."""
+    
+    def __init__(self, dim, d_state=64, n_layers=4, dropout=0.1):
+        super().__init__()
+        
+        # Temporal S4 layers
+        self.temporal_layers = nn.ModuleList([
+            S4Layer(d_model=dim, d_state=d_state, dropout=dropout)
+            for _ in range(n_layers)
+        ])
+        self.dropout = nn.Dropout(dropout)
+
+        
+    def forward(self, x):
+        """
+        Input x: (B, T, J, C)
+        """
+        # Process temporal dimension with S4
+        for layer in self.temporal_layers:
+            x = layer(x)
+        return x
 
 class DSTFormerBlock(nn.Module):
 
@@ -167,12 +228,12 @@ class DSTFormerBlock(nn.Module):
                                          use_temporal_similarity=use_temporal_similarity,
                                          neighbour_num=neighbour_num,
                                          n_frames=n_frames)
-        self.att_temporal = TransBlock(dim, mlp_ratio, act_layer, attn_drop, drop, drop_path, num_heads, qkv_bias,
-                                          qk_scale, use_layer_scale, layer_scale_init_value,
-                                          mode='temporal', mixer_type="attention",
-                                          use_temporal_similarity=use_temporal_similarity,
-                                          neighbour_num=neighbour_num,
-                                          n_frames=n_frames)
+        # self.att_temporal = TransBlock(dim, mlp_ratio, act_layer, attn_drop, drop, drop_path, num_heads, qkv_bias,
+        #                                   qk_scale, use_layer_scale, layer_scale_init_value,
+        #                                   mode='temporal', mixer_type="attention",
+        #                                   use_temporal_similarity=use_temporal_similarity,
+        #                                   neighbour_num=neighbour_num,
+        #                                   n_frames=n_frames)
 
 
 
@@ -184,14 +245,16 @@ class DSTFormerBlock(nn.Module):
                                                temporal_connection_len=temporal_connection_len,
                                                neighbour_num=neighbour_num,
                                                n_frames=n_frames)
-        self.graph_temporal = TransBlock(dim, mlp_ratio, act_layer, attn_drop, drop, drop_path, num_heads,
-                                                qkv_bias,
-                                                qk_scale, use_layer_scale, layer_scale_init_value,
-                                                mode='spatial', mixer_type='attention',
-                                                use_temporal_similarity=use_temporal_similarity,
-                                                temporal_connection_len=temporal_connection_len,
-                                                neighbour_num=neighbour_num,
-                                                n_frames=n_frames)
+        # self.graph_temporal = TransBlock(dim, mlp_ratio, act_layer, attn_drop, drop, drop_path, num_heads,
+        #                                         qkv_bias,
+        #                                         qk_scale, use_layer_scale, layer_scale_init_value,
+        #                                         mode='spatial', mixer_type='attention',
+        #                                         use_temporal_similarity=use_temporal_similarity,
+        #                                         temporal_connection_len=temporal_connection_len,
+        #                                         neighbour_num=neighbour_num,
+        #                                         n_frames=n_frames)
+        self.att_s4_temporal = S4TemporalBlock(dim, d_state=128, n_layers=4, dropout=0.1)
+        self.graph_s4_temporal = S4TemporalBlock(dim, d_state=128, n_layers=4, dropout=0.1)
 
         self.use_adaptive_fusion = use_adaptive_fusion
         if self.use_adaptive_fusion:
@@ -207,8 +270,8 @@ class DSTFormerBlock(nn.Module):
         x: tensor with shape [B, T, J, C]
         """
 
-        x_attn = self.att_temporal(self.att_spatial(x))
-        x_graph = self.graph_temporal(self.graph_spatial(x))
+        x_attn = self.att_s4_temporal(self.att_spatial(x))
+        x_graph = self.graph_s4_temporal(self.graph_spatial(x))
 
 
         alpha = torch.cat((x_attn, x_graph), dim=-1)
