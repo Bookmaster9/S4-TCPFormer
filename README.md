@@ -33,6 +33,7 @@ python train.py --config configs/h36m/TCPFormer_h36m_243.yaml
 Our code is extended from the following repository. We thank the authors for releasing the codes. 
 
 - [TCPFormer](https://github.com/AsukaCamellia/TCPFormer/tree/main)
+- [S4](https://github.com/state-spaces/s4)
 
 ## Licence
 This project is licensed under the terms of the MIT license.
