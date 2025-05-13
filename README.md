@@ -35,8 +35,4 @@ Our code is extended from the following repository. We thank the authors for rel
 - [TCPFormer](https://github.com/AsukaCamellia/TCPFormer/tree/main)
 - [S4](https://github.com/state-spaces/s4)
 
-## Licence
-This project is licensed under the terms of the MIT license.
-
-
 
