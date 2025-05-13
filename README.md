@@ -1,8 +1,4 @@
 ## Environment
-The project is developed under the following environment:
-- Python 3.10.x
-- PyTorch 2.2.1
-- CUDA 12.1
 
 For installation of the project dependencies, please run:
 ```
