@@ -1,4 +1,4 @@
-## 💡 Environment
+## Environment
 The project is developed under the following environment:
 - Python 3.10.x
 - PyTorch 2.2.1
@@ -9,7 +9,7 @@ For installation of the project dependencies, please run:
 pip install -r requirements.txt
 ``` 
 
-## 🐳 Dataset
+## Dataset
 ### Human3.6M
 #### Preprocessing
 1. We follow the previous state-of-the-art method [MotionBERT](https://github.com/Walter0807/MotionBERT/blob/main/docs/pose3d.md) for dataset setup. Download the [MotionBERT](https://github.com/Walter0807/MotionBERT/blob/main/docs/pose3d.md)'s preprocessed H3.6M data [here](https://1drv.ms/u/s!AvAdh0LSjEOlgU7BuUZcyafu8kzc?e=vobkjZ) and unzip it to 'data/motion3d'.
@@ -20,7 +20,7 @@ pip install -r requirements.txt
 python h36m.py  --n-frames 243
 ```
 
-## ✨ Training
+## Training
 After dataset preparation, you can train the model as follows:
 ### Human3.6M
 You can train Human3.6M with the following command:
@@ -32,13 +32,13 @@ where config files are located at `configs/h36m`.
 python train.py --config configs/h36m/TCPFormer_h36m_243.yaml 
 ```
 
-## 👍 Acknowledgement
+## Acknowledgement
 
-Our code is extended from the following repositories. We thank the authors for releasing the codes. 
+Our code is extended from the following repository. We thank the authors for releasing the codes. 
 
 - [TCPFormer](https://github.com/AsukaCamellia/TCPFormer/tree/main)
 
-## 🔒 Licence
+## Licence
 This project is licensed under the terms of the MIT license.
 
 
